@@ -1,0 +1,23 @@
+{
+  "name": "wallet-connect-plugin",
+  "version": "1.0.0",
+  "license": "MIT",
+  "main": "dist/WalletConnectPlugin.js",
+  "types": "dist/WalletConnectPlugin.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start-basic": "tsc -w",
+    "start-local": "tsc -w"
+  },
+  "dependencies": {
+    "@burner-wallet/types": "^1.0.0",
+    "@types/react": "*",
+    "@walletconnect/browser-crypto": "^1.0.0-beta.74",
+    "@walletconnect/core": "^1.0.0-beta.74",
+    "@walletconnect/types": "^1.0.0-beta.74",
+    "@walletconnect/utils": "^1.0.0-beta.74"
+  },
+  "devDependencies": {
+    "typescript": "^3.5.2"
+  }
+}
