@@ -12,10 +12,10 @@
   "dependencies": {
     "@burner-wallet/types": "^1.0.0",
     "@types/react": "*",
-    "@walletconnect/browser-crypto": "^1.0.0-beta.74",
-    "@walletconnect/core": "^1.0.0-beta.74",
-    "@walletconnect/types": "^1.0.0-beta.74",
-    "@walletconnect/utils": "^1.0.0-beta.74"
+    "@walletconnect/browser-crypto": "^1.0.0",
+    "@walletconnect/core": "^1.0.0",
+    "@walletconnect/types": "^1.0.0",
+    "@walletconnect/utils": "^1.0.0"
   },
   "devDependencies": {
     "typescript": "^3.5.2"
