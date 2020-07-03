@@ -3,7 +3,7 @@ import Connector from '@walletconnect/core';
 import * as cryptoLib from '@walletconnect/browser-crypto';
 import AcceptConnectionPage from './ui/AcceptConnectionPage';
 import RequestPage from './ui/RequestPage';
-import MyElement from './ui/MyElement';
+import WalletConnectStatus from './ui/WalletConnectStatus';
 
 interface PluginActionContext {
   actions: Actions;
@@ -22,10 +22,11 @@ export interface Request {
 }
 
 const DEFAULT_CHAIN = 1;
+const URI_KEY = 'walletconnect-uri';
 
 export default class WalletConnectPlugin implements Plugin {
   private pluginContext?: BurnerPluginContext;
-  private connector: Connector | null = null;
+  public connector: Connector | null = null;
   public pendingSession: Session | null = null;
   private pendingRequests: Request[] = [];
 
@@ -41,11 +42,21 @@ export default class WalletConnectPlugin implements Plugin {
 
     pluginContext.addPage('/wallet-connect/session-request', AcceptConnectionPage);
     pluginContext.addPage('/wallet-connect/call-request', RequestPage);
-    pluginContext.addElement('home-middle', MyElement);
+    pluginContext.addElement('home-middle', WalletConnectStatus);
+
+    pluginContext.onStartup((ctx: PluginActionContext) => {
+      const storedURI = window.localStorage.getItem(URI_KEY);
+      if (storedURI) {
+        this.initializeWC(storedURI, ctx.actions.navigateTo);
+      }
+    });
   }
-
+cryptoLib: ICryptoLib;
+    connectorOpts: IWalletConnectOptions;
+    transport?: ITransportLib;
+    sessionStorage?: ISessionStorage;
+    pushServerOpts?: IPushServerOptions;
   initializeWC(uri: string, navigateTo: (path: string) => void) {
-
     const clientMeta = {
       description: 'Burner Wallet',
       url: 'https://burnerfactory.com',
@@ -53,12 +64,9 @@ export default class WalletConnectPlugin implements Plugin {
       name: 'Burner Wallet',
     };
 
-    const walletConnector = new Connector(
+    const walletConnector = new Connector({
       cryptoLib,
-      { uri },
-      null, // transport
-      null, // storage
-      clientMeta
+      connectorOpts: { uri, clientMeta },
     );
 
     walletConnector.on('session_request', (error: any, payload: any) => {
@@ -106,11 +114,18 @@ export default class WalletConnectPlugin implements Plugin {
   }
 
   acceptSession(accounts: string[]) {
-    this.getConnector().approveSession({ accounts, chainId: DEFAULT_CHAIN });
+    const connector = this.getConnector();
+    window.localStorage.setItem(URI_KEY, connector.uri);
+    connector.approveSession({ accounts, chainId: DEFAULT_CHAIN });
   }
 
   rejectSession() {
     this.getConnector().rejectSession({ message: 'Connection declined' });
+  }
+
+  disconnect() {
+    this.getConnector().killSession();
+    this.connector = null;
   }
 
   getPendingRequest() {
@@ -137,7 +152,7 @@ export default class WalletConnectPlugin implements Plugin {
 
   private providerSend(method: string, params: any[], network: number = DEFAULT_CHAIN): Promise<any> {
     return new Promise((resolve, reject) => {
-      const provider = this.pluginContext.getWeb3(network.toString()).currentProvider;
+      const provider: any = this.pluginContext.getWeb3(network.toString()).currentProvider;
       provider.sendAsync({ method, params }, (err: any, result: any) => {
         if (err) {
           reject(err);
