@@ -1,6 +1,6 @@
 {
-  "name": "sample-burner-wallet-plugin",
-  "description": "Sample repo for building a Burner Wallet 2 plugin",
+  "name": "wallet-connect-plugin",
+  "description": "Burner Wallet plugin for WalletConnect",
   "author": "David Mihal <david@dmihal.com>",
   "license": "MIT",
   "private": true,
