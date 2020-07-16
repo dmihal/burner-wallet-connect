@@ -83,6 +83,14 @@ export default class WalletConnectPlugin implements Plugin {
         throw error;
       }
 
+      if (payload.method.indexOf('bypass_') === 0) {
+        payload.method = payload.method.substring(7);
+      }
+
+      if (this.tryAutoApprove(payload)) {
+        return;
+      }
+
       this.pendingRequests.push({
         id: payload.id,
         type: payload.method,
@@ -155,12 +163,11 @@ export default class WalletConnectPlugin implements Plugin {
     if (!request) {
       return;
     }
-
     if (this.handleRequestInternally(request)) {
       return;
     }
 
-    const network = request.data[0] && request.data[0].chainId || DEFAULT_CHAIN;
+    const network = request.data[1] || (request.data[0] && request.data[0].chainId) || DEFAULT_CHAIN;
     const result = await this.providerSend(request.type, request.data, network);
     this.getConnector().approveRequest({ id: request.id, result });
   }
@@ -193,6 +200,24 @@ export default class WalletConnectPlugin implements Plugin {
         message: 'User rejected request',
       }
     });
+  }
+
+  private tryAutoApprove(payload: any) {
+    if (payload.method === 'eth_sendTransaction') {
+      const tx = payload.params[0];
+      const chain = tx.chainId || DEFAULT_CHAIN;
+      const asset = tx.data && tx.data.length === 0
+        ? '0x0000000000000000000000000000000000000000'
+        : tx.to;
+
+      if ((this.autoApprove[chain] || {})[asset]) {
+        this.providerSend(payload.method, payload.params, chain)
+          .then((result: any) => this.getConnector().approveRequest({ id: payload.id, result }));
+
+        return true;
+      }
+    }
+    return false;
   }
 
   private providerSend(method: string, params: any[], network: number = DEFAULT_CHAIN): Promise<any> {

@@ -10,14 +10,23 @@ const PersonalSign: React.FC<any> = ({ params }) => (
 );
 
 const Transaction: React.FC<any> = ({ params }) => {
-  const { from, to, value, data, gasPrice } = params[0];
+  const { assets } = useBurner();
+  const { from, to, value, data, gasPrice, chainId } = params[0];
+  const chain = chainId || params[1];
+
+  const isNative = !data || data.length === 0 || data === '0x';
+  const [token] = assets.filter((_asset: any) =>
+    _asset.network === chain && (_asset.address === to || (isNative && _asset.type === 'native')));
+
   return (
     <div>
       <div>From: {from}</div>
       <div>To: {to}</div>
-      <div>Value: {fromWei(value, 'ether')} ETH</div>
+      {/* TODO: show token recipient */}
+      <div>Value: {fromWei(value, 'ether')} {token!.name}</div>
+      {/* TODO: show token value */}
       <div>Gas Price: {fromWei(gasPrice, 'gwei')} Gwei</div>
-      <div>Data: {data} Gwei</div>
+      <div>Data: {data}</div>
     </div>
   );
 };
@@ -28,8 +37,8 @@ const AutoApprove: React.FC<any> = ({ params }) => {
   const { assets } = useBurner();
   const { from, asset, chainId } = params[0];
 
-  const [token] = assets.filter((_asset: any) => 
-    _asset.network === chainId && (_asset.address === asset || asset === ZERO_ADDRESS));
+  const [token] = assets.filter((_asset: any) =>
+    _asset.network === chainId && (_asset.address || ZERO_ADDRESS) === asset);
 
   return (
     <div>
