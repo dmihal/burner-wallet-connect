@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PluginElementContext } from '@burner-wallet/types';
+import WalletConnectPlugin from '../WalletConnectPlugin';
 
 const WalletConnectStatus: React.FC<PluginElementContext<WalletConnectPlugin>> = ({ plugin }) => {
   const [, rerender] = useState({});

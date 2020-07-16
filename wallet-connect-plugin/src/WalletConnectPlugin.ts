@@ -64,7 +64,7 @@ export default class WalletConnectPlugin implements Plugin {
     const walletConnector = new Connector({
       cryptoLib,
       connectorOpts: { uri, clientMeta },
-    );
+    });
 
     walletConnector.on('session_request', (error: any, payload: any) => {
       if (error) {
@@ -152,6 +152,9 @@ export default class WalletConnectPlugin implements Plugin {
 
   async approveRequest() {
     const request = this.pendingRequests.shift();
+    if (!request) {
+      return;
+    }
 
     if (this.handleRequestInternally(request)) {
       return;
@@ -179,10 +182,14 @@ export default class WalletConnectPlugin implements Plugin {
 
   rejectRequest() {
     const request = this.pendingRequests.shift();
+    if (!request) {
+      return;
+    }
+
     this.getConnector().rejectRequest({
       id: request.id,
       error: {
-        code: 'REJECTED',
+        code: 400,
         message: 'User rejected request',
       }
     });
@@ -190,7 +197,7 @@ export default class WalletConnectPlugin implements Plugin {
 
   private providerSend(method: string, params: any[], network: number = DEFAULT_CHAIN): Promise<any> {
     return new Promise((resolve, reject) => {
-      const provider: any = this.pluginContext.getWeb3(network.toString()).currentProvider;
+      const provider: any = this.pluginContext!.getWeb3(network.toString()).currentProvider;
       provider.sendAsync({ method, params }, (err: any, result: any) => {
         if (err) {
           reject(err);

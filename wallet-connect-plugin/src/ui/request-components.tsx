@@ -41,7 +41,7 @@ const AutoApprove: React.FC<any> = ({ params }) => {
   );
 };
 
-const requestTypes: { string: React.ComponentType } = {
+const requestTypes: { [request: string]: React.ComponentType<{ params: any }> } = {
   personal_sign: PersonalSign,
   eth_sendTransaction: Transaction,
   wc_setAutoApprove: AutoApprove,
