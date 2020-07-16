@@ -29,6 +29,7 @@ export default class WalletConnectPlugin implements Plugin {
   public connector: Connector | null = null;
   public pendingSession: Session | null = null;
   private pendingRequests: Request[] = [];
+  private autoApprove: { [chain: string]: { [asset: string]: boolean } } = {};
 
   initializePlugin(pluginContext: BurnerPluginContext) {
     this.pluginContext = pluginContext;
@@ -51,11 +52,7 @@ export default class WalletConnectPlugin implements Plugin {
       }
     });
   }
-cryptoLib: ICryptoLib;
-    connectorOpts: IWalletConnectOptions;
-    transport?: ITransportLib;
-    sessionStorage?: ISessionStorage;
-    pushServerOpts?: IPushServerOptions;
+
   initializeWC(uri: string, navigateTo: (path: string) => void) {
     const clientMeta = {
       description: 'Burner Wallet',
@@ -93,6 +90,27 @@ cryptoLib: ICryptoLib;
       });
 
       navigateTo('/wallet-connect/call-request');
+    });
+
+    walletConnector.on('wc_supportsAutoApprove', (error, payload) => {
+      this.getConnector().approveRequest({ id: payload.id, result: true });
+    });
+
+    walletConnector.on('wc_setAutoApprove', (error, payload) => {
+      const data = payload.params[0];
+      if (data.on === false && this.autoApprove[data.chainId]) {
+        this.autoApprove[data.chainId][data.asset] = false;
+        this.getConnector().approveRequest({ id: payload.id, result: true });
+      } else {
+
+        this.pendingRequests.push({
+          id: payload.id,
+          type: payload.method,
+          data: payload.params,
+        });
+
+        navigateTo('/wallet-connect/call-request');
+      }
     });
 
     walletConnector.on('disconnect', (error: any, payload: any) => {
@@ -134,9 +152,29 @@ cryptoLib: ICryptoLib;
 
   async approveRequest() {
     const request = this.pendingRequests.shift();
+
+    if (this.handleRequestInternally(request)) {
+      return;
+    }
+
     const network = request.data[0] && request.data[0].chainId || DEFAULT_CHAIN;
     const result = await this.providerSend(request.type, request.data, network);
     this.getConnector().approveRequest({ id: request.id, result });
+  }
+
+  handleRequestInternally(request: Request) {
+    switch (request.type) {
+      case 'wc_setAutoApprove':
+        this.autoApprove[request.data[0].chainId] = {
+          ...this.autoApprove[request.data[0].chainId],
+          [request.data[0].asset]: request.data[0].on,
+        };
+        this.getConnector().approveRequest({ id: request.id, result: true });
+        return true;
+
+      default:
+        return false;
+    }
   }
 
   rejectRequest() {
