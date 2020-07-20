@@ -21,15 +21,23 @@ export interface Request {
   data: any;
 }
 
-const DEFAULT_CHAIN = 1;
 const URI_KEY = 'walletconnect-uri';
+
+interface WCPluginOptions {
+  defaultChainId?: string;
+}
 
 export default class WalletConnectPlugin implements Plugin {
   private pluginContext?: BurnerPluginContext;
   public connector: Connector | null = null;
   public pendingSession: Session | null = null;
+  public defaultChainId: string;
   private pendingRequests: Request[] = [];
   private autoApprove: { [chain: string]: { [asset: string]: boolean } } = {};
+
+  constructor({ defaultChainId = '1' }: WCPluginOptions = {}) {
+    this.defaultChainId = defaultChainId;
+  }
 
   initializePlugin(pluginContext: BurnerPluginContext) {
     this.pluginContext = pluginContext;
@@ -142,7 +150,7 @@ export default class WalletConnectPlugin implements Plugin {
   acceptSession(accounts: string[]) {
     const connector = this.getConnector();
     window.localStorage.setItem(URI_KEY, connector.uri);
-    connector.approveSession({ accounts, chainId: DEFAULT_CHAIN });
+    connector.approveSession({ accounts, chainId: parseInt(this.defaultChainId) });
   }
 
   rejectSession() {
@@ -167,7 +175,7 @@ export default class WalletConnectPlugin implements Plugin {
       return;
     }
 
-    const network = request.data[1] || (request.data[0] && request.data[0].chainId) || DEFAULT_CHAIN;
+    const network = request.data[1] || (request.data[0] && request.data[0].chainId) || this.defaultChainId;
     const result = await this.providerSend(request.type, request.data, network);
     this.getConnector().approveRequest({ id: request.id, result });
   }
@@ -205,7 +213,7 @@ export default class WalletConnectPlugin implements Plugin {
   private tryAutoApprove(payload: any) {
     if (payload.method === 'eth_sendTransaction') {
       const tx = payload.params[0];
-      const chain = tx.chainId || DEFAULT_CHAIN;
+      const chain = tx.chainId || this.defaultChainId;
       const asset = tx.data && tx.data.length === 0
         ? '0x0000000000000000000000000000000000000000'
         : tx.to;
@@ -220,7 +228,7 @@ export default class WalletConnectPlugin implements Plugin {
     return false;
   }
 
-  private providerSend(method: string, params: any[], network: number = DEFAULT_CHAIN): Promise<any> {
+  private providerSend(method: string, params: any[], network: string = this.defaultChainId): Promise<any> {
     return new Promise((resolve, reject) => {
       const provider: any = this.pluginContext!.getWeb3(network.toString()).currentProvider;
       provider.sendAsync({ method, params }, (err: any, result: any) => {
