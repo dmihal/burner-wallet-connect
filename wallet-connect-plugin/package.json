@@ -1,6 +1,6 @@
 {
   "name": "@burner-wallet/wallet-connect-plugin",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "MIT",
   "main": "dist/WalletConnectPlugin.js",
   "types": "dist/WalletConnectPlugin.d.ts",
